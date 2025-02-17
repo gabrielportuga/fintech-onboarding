@@ -7,9 +7,24 @@
       "output": "static"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
+          "recordAudioAndroid": true
+        }
+      ]
     ],
     "name": "fintech-onboarding",
-    "slug": "fintech-onboarding"
+    "slug": "fintech-onboarding",
+    "ios": {
+      "bundleIdentifier": "com.anonymous.fintech-onboarding",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app requires access to the camera to take photos and scan QR codes.",
+        "NSMicrophoneUsageDescription": "This app requires access to the microphone for video recording."
+      }
+    }
   }
 }
