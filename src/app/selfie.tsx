@@ -2,13 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, Image, Button, ActivityIndicator, StyleSheet } from "react-native";
 import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import Svg, { Ellipse } from "react-native-svg";
+import * as FileSystem from "expo-file-system";
 import { Ionicons } from "@expo/vector-icons";
 
 export default function CameraScreen() {
   const [facing, setFacing] = useState<CameraType>("front");
   const [photo, setPhoto] = useState<string | null>(null);
   const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef<CameraView | null>(null);
+  const [cameraRef, setCameraRef] = useState(null);
 
   // ✅ Debugging: Log permission status
   useEffect(() => {
@@ -39,12 +40,54 @@ export default function CameraScreen() {
     setFacing((current) => (current === "back" ? "front" : "back"));
   }
 
+  const takePictureAndUpload = async () => {
+    if (cameraRef) {
+      const photoData = await cameraRef.takePictureAsync();
+      const localUri = `${FileSystem.cacheDirectory}photo.jpg`;
+      setPhoto(photoData.uri);
+      
+      // Save image to local storage
+      await FileSystem.moveAsync({
+        from: photoData.uri,
+        to: localUri,
+      });
+
+      setPhoto(localUri);
+
+      console.log("Saved photo at:", localUri); // ✅ Check if the file is saved
+
+      const formData = new FormData();
+      const photoFile = {
+        uri: photoData.uri,
+        name: "photo.jpg",
+        type: "image/jpg",
+      } as any;
+      formData.append("image", photoFile);
+
+      try {
+        // const response = await fetch("https://your-server.com/upload", {
+        //   method: "POST",
+        //   body: formData,
+        //   headers: {
+        //     "Content-Type": "multipart/form-data",
+        //   },
+        // });
+        // const result = await response.json();
+        console.log("Upload successful:", photoData.uri);
+        await FileSystem.deleteAsync(localUri);
+        setPhoto(null);
+      } catch (error) {
+        console.error("Upload failed:", error);
+      }
+    }
+  };
+
   console.log("Permission granted, rendering camera..."); // ✅ Log before returning JSX
 
   return (
     <View style={styles.container}>
       {!photo ? (
-        <CameraView ref={cameraRef} style={styles.camera} facing={facing}>
+        <CameraView ref={setCameraRef} style={styles.camera} facing={facing}>
           <View style={styles.overlay}>
             <Svg height="100%" width="100%">
               <Ellipse
@@ -64,8 +107,8 @@ export default function CameraScreen() {
             </Text>
           </View>
           <View style={styles.controls}>
-            <TouchableOpacity onPress={toggleCameraFacing} style={styles.flipButton}>
-              <Ionicons name="camera-reverse" size={30} color="white" />
+            <TouchableOpacity onPress={takePictureAndUpload} style={styles.flipButton}>
+              <Ionicons name="camera" size={30} color="white" />
             </TouchableOpacity>
           </View>
         </CameraView>
